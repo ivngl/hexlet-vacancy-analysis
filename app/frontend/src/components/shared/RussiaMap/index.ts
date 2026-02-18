@@ -1,0 +1,1 @@
+export { RussiaMap } from './ui/RussiaMap'

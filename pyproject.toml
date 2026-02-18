@@ -32,10 +32,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "factory-boy>=3.3.3",
     "pytest>=8.4.1",
     "pytest-cov>=6.2.1",
     "pytest-django>=4.11.1",
-    "ruff>=0.12.1",
 ]
 
 [tool.pylint.main]

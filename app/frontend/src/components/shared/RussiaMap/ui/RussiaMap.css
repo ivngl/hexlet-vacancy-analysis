@@ -1,0 +1,315 @@
+/* RussiaMap.css */
+.russia-map-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+}
+
+.map-title {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.map-subtitle {
+  text-align: center;
+  color: #7f8c8d;
+  font-size: 1.1rem;
+  margin-bottom: 30px;
+}
+
+.map-wrapper {
+  position: relative;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.russia-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.russia-outline {
+  transition: all 0.3s ease;
+}
+
+.russia-outline:hover {
+  filter: brightness(1.1);
+}
+
+.city-group {
+  transition: all 0.3s ease;
+}
+
+.city-marker {
+  transition: all 0.3s ease;
+}
+
+.city-marker:hover {
+  r: 8;
+  fill: #c0392b;
+}
+
+.pulse-circle {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.city-label {
+  pointer-events: none;
+  text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+}
+
+.city-group:hover .city-label {
+  font-size: 13px;
+  fill: #e74c3c;
+}
+
+.mountain-label,
+.river-label {
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Tooltip Styles */
+.city-tooltip {
+  position: fixed;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  min-width: 320px;
+  max-width: 400px;
+  animation: tooltipAppear 0.3s ease;
+  border: 1px solid #e0e0e0;
+}
+
+@keyframes tooltipAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #ecf0f1;
+}
+
+.tooltip-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tooltip-close {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  color: #95a5a6;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 5px;
+  transition: color 0.3s;
+}
+
+.tooltip-close:hover {
+  color: #e74c3c;
+}
+
+.tooltip-description {
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+}
+
+.tooltip-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tooltip-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tooltip-label {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tooltip-value {
+  font-size: 0.95rem;
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.tooltip-arrow {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid white;
+}
+
+/* City List Sidebar */
+.city-list {
+  margin-top: 30px;
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+.city-list h3 {
+  margin: 0 0 20px 0;
+  color: #2c3e50;
+  font-size: 1.4rem;
+  border-bottom: 2px solid #ecf0f1;
+  padding-bottom: 10px;
+}
+
+.city-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.city-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+}
+
+.city-list-item:hover,
+.city-list-item.active {
+  background: #e8f4f8;
+  transform: translateX(5px);
+}
+
+.city-dot {
+  width: 10px;
+  height: 10px;
+  background: #e74c3c;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.city-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.city-name {
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 0.95rem;
+}
+
+.city-pop {
+  font-size: 0.8rem;
+  color: #7f8c8d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .map-title {
+    font-size: 1.8rem;
+  }
+  
+  .city-tooltip {
+    min-width: 280px;
+    max-width: 320px;
+    position: fixed;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%);
+  }
+  
+  .tooltip-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .city-list ul {
+    grid-template-columns: 1fr;
+  }
+  
+  .mountain-label,
+  .river-label {
+    font-size: 10px;
+  }
+}
+
+/* Animation for markers */
+@keyframes markerAppear {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.city-group {
+  animation: markerAppear 0.5s ease forwards;
+}
+
+.city-group:nth-child(1) { animation-delay: 0.1s; }
+.city-group:nth-child(2) { animation-delay: 0.2s; }
+.city-group:nth-child(3) { animation-delay: 0.3s; }
+.city-group:nth-child(4) { animation-delay: 0.4s; }
+.city-group:nth-child(5) { animation-delay: 0.5s; }
+.city-group:nth-child(6) { animation-delay: 0.6s; }
+.city-group:nth-child(7) { animation-delay: 0.7s; }
+.city-group:nth-child(8) { animation-delay: 0.8s; }
+.city-group:nth-child(9) { animation-delay: 0.9s; }
+.city-group:nth-child(10) { animation-delay: 1s; }
