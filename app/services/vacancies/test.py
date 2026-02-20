@@ -129,7 +129,7 @@ class SearchVacanciesTests(TransactionTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Create 2 vacancies with custom attributes
+        cls.factory = RequestFactory()
         cls.vacancies = VacancyFactory.create_batch(
             2,
             title=factory.Iterator(["Python Developer", "Java Engineer"]),
@@ -235,29 +235,8 @@ class SearchVacanciesTests(TransactionTestCase):
             self.assertIn(field, result[0])
 
 
-class PaginatedVacanciesTests(TestCase):
-    """Tests for get_paginated_vacancies function."""
-
-    def setUp(self):
-        """Set up test fixtures and request factory."""
-        self.factory = RequestFactory()
-        self.platform = Platform.objects.create(name=Platform.HH)
-        self.company = Company.objects.create(name="Tech Corp")
-        self.city = City.objects.create(name="Moscow")
-
     def test_first_page_pagination(self):
-        """Test pagination on first page."""
-        # Create more vacancies than VACANCIES_PER_PAGE
-        for i in range(10):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
+        VacancyFactory.build_batch(10)
 
         request = self.factory.get("/vacancies?page=1")
         result = asyncio.run(get_paginated_vacancies(request))
@@ -268,18 +247,7 @@ class PaginatedVacanciesTests(TestCase):
         self.assertFalse(result["pagination"]["has_previous"])
 
     def test_middle_page_pagination(self):
-        """Test pagination on middle page."""
-        # Create enough vacancies for 3 pages
-        for i in range(15):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
+        VacancyFactory.build_batch(15)
 
         request = self.factory.get("/vacancies?page=2")
         result = asyncio.run(get_paginated_vacancies(request))
@@ -292,18 +260,7 @@ class PaginatedVacanciesTests(TestCase):
         self.assertEqual(result["pagination"]["next_page_number"], 3)
 
     def test_last_page_pagination(self):
-        """Test pagination on last page."""
-        # Create 12 vacancies (2 full pages + 2 items)
-        for i in range(12):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
+        VacancyFactory.build_batch(12)
 
         request = self.factory.get("/vacancies?page=3")
 
