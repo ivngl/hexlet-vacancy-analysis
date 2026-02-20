@@ -18,29 +18,28 @@ from app.services.vacancies.utils.paginated_vacancies import (
 )
 
 
-def create_vacancies(
-    n=1,
-    title=None,
-    city="Moscow",
-    company="Hexlet",
-    platform=Platform.HH,
-    description="No description",
-):
-    platform = Platform.objects.get_or_create(name=platform)[0]
-
-    if isinstance(city, (list, tuple)):
-        cities = [City.objects.get_or_create(name=c)[0] for c in city]
-    else:
-        cities = [City.objects.get_or_create(name=city)[0]]
-
-    if isinstance(company, (list, tuple)):
-        companies = [Company.objects.get_or_create(name=c)[0] for c in company]
-    else:
-        companies = [Company.objects.get_or_create(name=company)[0]]
-
+def vacancy_creator():
     vacancy_id = count(0)
 
-    def get_vacancies():
+    def get_vacancies( n=1,
+        title=None,
+        city="Moscow",
+        company="Hexlet",
+        platform=Platform.HH,
+        description="No description"):
+        platform = Platform.objects.get_or_create(name=platform)[0]
+
+        if isinstance(city, (list, tuple)):
+            cities = [City.objects.get_or_create(name=c)[0] for c in city]
+        else:
+            cities = [City.objects.get_or_create(name=city)[0]]
+
+        if isinstance(company, (list, tuple)):
+            companies = [Company.objects.get_or_create(name=c)[0] for c in company]
+        else:
+            companies = [Company.objects.get_or_create(name=company)[0]]
+
+    
         vacancies = [
             Vacancy(
                 platform=platform,
@@ -63,26 +62,95 @@ def create_vacancies(
 
     return get_vacancies
 
+import factory
+from factory.django import DjangoModelFactory
+from factory import Sequence, Trait, post_generation
+from django.utils import timezone
+from itertools import count
+
+
+
+class PlatformFactory(DjangoModelFactory):
+    class Meta:
+        model = Platform
+        django_get_or_create = ('name',)  # Ensures no duplicates
+
+    name = factory.Sequence(lambda n: f"Platform {n}")
+
+
+class CityFactory(DjangoModelFactory):
+    class Meta:
+        model = City
+        django_get_or_create = ('name',)
+
+    name = factory.Sequence(lambda n: f"City {n}")
+
+
+class CompanyFactory(DjangoModelFactory):
+    class Meta:
+        model = Company
+        django_get_or_create = ('name',)
+
+    name = factory.Sequence(lambda n: f"Company {n}")
+
+
+class VacancyFactory(DjangoModelFactory):
+    class Meta:
+        model = Vacancy
+
+    # Core fields with sensible defaults
+    platform = factory.SubFactory(PlatformFactory, name="HH")
+    company = factory.SubFactory(CompanyFactory, name="Hexlet")
+    city = factory.SubFactory(CityFactory, name="Moscow")
+    
+    # Unique ID using Sequence (auto-incrementing)
+    platform_vacancy_id = Sequence(lambda n: n)
+    
+    title = factory.Sequence(lambda n: f"Developer {n}")
+    url = factory.LazyAttribute(lambda o: f"https://example.com/vacancy/{o.platform_vacancy_id}")
+    salary = "100000 RUB"
+    experience = "2-3 years"
+    employment = "Full-time"
+    description = "No description"
+    published_at = factory.LazyFunction(timezone.now)
+
+    # 🔹 Trait: Python-focused vacancy
+
+
+    # 🔹 Post-generation hook for complex logic (optional)
+    @post_generation
+    def tags(self, create, extracted, **kwargs):
+        if not create or not extracted:
+            return
+        for tag in extracted:
+            self.tags.add(tag)  # Assumes M2M relation 'tags' exists
 
 class SearchVacanciesTests(TransactionTestCase):
-    """Tests for get_search_vacancies function."""
-
     @classmethod
     def setUpClass(cls):
-        cls.total_vacancies = 2
-        create_vacancies(
-            cls.total_vacancies,
-            title=["Python Developer", "Java Engineer"],
-            city=["Moscow", "SPB"],
-            company=["Hexlet", "Google"],
-        )()
+        super().setUpClass()
+        # Create 2 vacancies with custom attributes
+        cls.vacancies = VacancyFactory.create_batch(
+            2,
+            title=factory.Iterator(["Python Developer", "Java Engineer"]),
+            city=factory.Iterator([CityFactory(name="Moscow"), CityFactory(name="SPB")]),
+            company=factory.Iterator([CompanyFactory(name="Hexlet"), CompanyFactory(name="Google")]),
+        )
+    def test_vacancies_created(self):
+        self.assertEqual(Vacancy.objects.count(), 2)
+        
+    def test_vacancy_titles(self):
+        titles = [v.title for v in Vacancy.objects.all()]
+        self.assertIn("Python Developer", titles)
+        self.assertIn("Java Engineer", titles)
 
     def test_get_all_vacancies_empty_search(self):
         result = asyncio.run(get_search_vacancies(""))
-
-        self.assertEqual(len(result), self.total_vacancies)
+        #self.vacancies.count
+        self.assertEqual(len(result), len(self.vacancies))
         self.assertEqual(result[-1]["title"], "Python Developer")
         self.assertEqual(result[-1]["company"], "Hexlet")
+
 
     def test_search_by_title(self):
         result = asyncio.run(get_search_vacancies("Python"))
@@ -103,53 +171,19 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertEqual(result[0]["city"], "SPB")
 
     def test_search_by_description(self):
-        create_vacancies(description="We need Django expertise")()
-
+        VacancyFactory(description="We need Django expertise")
         result = asyncio.run(get_search_vacancies("Django"))
 
         self.assertEqual(len(result), 1)
         self.assertIn("Django", result[0]["description"])
 
     def test_search_multiple_terms(self):
-        """Test search with multiple terms (AND logic)."""
-        Vacancy.objects.create(
-            platform=self.platform,
-            company=self.company1,
-            city=self.city,
-            platform_vacancy_id="1",
-            title="Python Developer",
-            url="https://example.com/1",
-            description="In Moscow office",
-            published_at=timezone.now(),
-        )
-        Vacancy.objects.create(
-            platform=self.platform,
-            company=self.company1,
-            city=self.other_city,
-            platform_vacancy_id="2",
-            title="Python Developer",
-            url="https://example.com/2",
-            description="Remote position",
-            published_at=timezone.now(),
-        )
-
         result = asyncio.run(get_search_vacancies("Python Moscow"))
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["title"], "Python Developer")
 
     def test_search_case_insensitive(self):
-        """Test search is case-insensitive."""
-        Vacancy.objects.create(
-            platform=self.platform,
-            company=self.company1,
-            city=self.city,
-            platform_vacancy_id="1",
-            title="Python Developer",
-            url="https://example.com/1",
-            published_at=timezone.now(),
-        )
-
         result_lower = asyncio.run(get_search_vacancies("python"))
         result_upper = asyncio.run(get_search_vacancies("PYTHON"))
 
