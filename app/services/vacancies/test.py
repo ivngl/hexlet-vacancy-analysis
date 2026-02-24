@@ -3,9 +3,11 @@ from datetime import datetime
 from itertools import count
 from unittest.mock import AsyncMock, Mock, patch
 
+from .views import VacancyListView
+
 import pytest
 from django.db import transaction
-from django.test import RequestFactory, TestCase, TransactionTestCase
+from django.test import RequestFactory, override_settings, TestCase, TransactionTestCase
 from django.utils import timezone
 from factory.faker import Faker
 
@@ -129,16 +131,27 @@ class SearchVacanciesTests(TransactionTestCase):
     def test_vacancies_created(self):
         self.assertEqual(Vacancy.objects.count(), 2)
     
+    @patch("app.services.vacancies.views.inertia_render")
+    @patch(
+        "app.services.vacancies.views.get_paginated_vacancies",
+        new_callable=AsyncMock,
+    )
+    @override_settings(SECRET_KEY="a-test-secret")
+    async def test_fetch_vacancies(self, 
+    mock_get_paginated_vacancies, mock_inertia_render):
+        request = self.factory.get("/vacancies/")
+        mock_paginated_data = {
+            "vacancies": [{"id": 1, "title": "Test Vacancy"}],
+            "pagination": {"page": 1, "has_next": False},
+        }
+        mock_get_paginated_vacancies.return_value = mock_paginated_data
+        mock_inertia_render.return_value = "Mocked Inertia Response"
 
-    def test_fetch_vacancies(self):
-        request = self.factory.get("/vacancies")
+        view = VacancyListView()
+        response = await view.get(request)
 
-        with patch("app.services.hh.hh_parser.utils.vacancy_service.fetch_vacancies") as hh_fetch:
-            hh_fetch.return_value = {"data": "uuu"}
-                
-            result = asyncio.run(get_paginated_vacancies(request))
-
-        print(result)
+       
+        print(response)
    
         
 
@@ -257,4 +270,47 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertIn("total_pages", pagination)
         self.assertIn("has_next", pagination)
         self.assertIn("has_previous", pagination)
-4 
+
+
+from unittest.mock import AsyncMock, patch
+
+from django.test import RequestFactory, SimpleTestCase, override_settings
+
+from .views import VacancyListView
+
+
+class VacancyListViewTest(SimpleTestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    @patch("app.services.vacancies.views.inertia_render")
+    @patch(
+        "app.services.vacancies.views.get_paginated_vacancies",
+        new_callable=AsyncMock,
+    )
+    @override_settings(SECRET_KEY="a-test-secret")
+    async def test_get_vacancy_list(
+        self, mock_get_paginated_vacancies, mock_inertia_render
+    ):
+        request = self.factory.get("/vacancies/")
+        mock_paginated_data = {
+            "vacancies": [{"id": 1, "title": "Test Vacancy"}],
+            "pagination": {"page": 1, "has_next": False},
+        }
+        mock_get_paginated_vacancies.return_value = mock_paginated_data
+        mock_inertia_render.return_value = "Mocked Inertia Response"
+
+        view = VacancyListView()
+        response = await view.get(request)
+
+        self.assertEqual(response, "Mocked Inertia Response")
+        mock_get_paginated_vacancies.assert_awaited_once_with(request)
+        mock_inertia_render.assert_called_once_with(
+            request, "VacanciesPage", props=mock_paginated_data
+        )
+
+        with patch("app.services.hh.hh_parser.utils.vacancy_service.fetch_vacancies") as hh_fetch:
+            hh_fetch.return_value = {"data": "uuu"}
+                
+            result = asyncio.run(get_paginated_vacancies(request))
+

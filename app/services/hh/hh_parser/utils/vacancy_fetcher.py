@@ -12,6 +12,7 @@ async def fetch_hh_vacancies(params):
     urls = [base_url]
 
     responses = await api_client.get(urls=urls, params=params)
+    
     vacancies = responses[0].get("items")
 
     if not vacancies:
