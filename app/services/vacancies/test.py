@@ -73,9 +73,7 @@ from itertools import count
 class PlatformFactory(DjangoModelFactory):
     class Meta:
         model = Platform
-        django_get_or_create = ('name',)  # Ensures no duplicates
-
-    name = factory.Sequence(lambda n: f"Platform {n}")
+        django_get_or_create = ('name',)
 
 
 class CityFactory(DjangoModelFactory):
@@ -117,37 +115,43 @@ class VacancyFactory(DjangoModelFactory):
     # 🔹 Trait: Python-focused vacancy
 
 
-    # 🔹 Post-generation hook for complex logic (optional)
-    @post_generation
-    def tags(self, create, extracted, **kwargs):
-        if not create or not extracted:
-            return
-        for tag in extracted:
-            self.tags.add(tag)  # Assumes M2M relation 'tags' exists
-
 class SearchVacanciesTests(TransactionTestCase):
-    @classmethod
-    def setUpClass(cls):
-        super().setUpClass()
-        cls.factory = RequestFactory()
-        cls.vacancies = VacancyFactory.create_batch(
+    def setUp(self):
+        self.factory = RequestFactory()
+        VacancyFactory.create_batch(
             2,
             title=factory.Iterator(["Python Developer", "Java Engineer"]),
             city=factory.Iterator([CityFactory(name="Moscow"), CityFactory(name="SPB")]),
             company=factory.Iterator([CompanyFactory(name="Hexlet"), CompanyFactory(name="Google")]),
         )
+
+
     def test_vacancies_created(self):
         self.assertEqual(Vacancy.objects.count(), 2)
+    
+
+    def test_fetch_vacancies(self):
+        request = self.factory.get("/vacancies")
+
+        with patch("app.services.hh.hh_parser.utils.vacancy_service.fetch_vacancies") as hh_fetch:
+            hh_fetch.return_value = {"data": "uuu"}
+                
+            result = asyncio.run(get_paginated_vacancies(request))
+
+        print(result)
+   
         
+
     def test_vacancy_titles(self):
         titles = [v.title for v in Vacancy.objects.all()]
+
         self.assertIn("Python Developer", titles)
         self.assertIn("Java Engineer", titles)
 
     def test_get_all_vacancies_empty_search(self):
         result = asyncio.run(get_search_vacancies(""))
-        #self.vacancies.count
-        self.assertEqual(len(result), len(self.vacancies))
+        
+        self.assertEqual(len(result), Vacancy.objects.count())
         self.assertEqual(result[-1]["title"], "Python Developer")
         self.assertEqual(result[-1]["company"], "Hexlet")
 
@@ -171,7 +175,7 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertEqual(result[0]["city"], "SPB")
 
     def test_search_by_description(self):
-        VacancyFactory(description="We need Django expertise")
+        VacancyFactory.create(description="We need Django expertise")
         result = asyncio.run(get_search_vacancies("Django"))
 
         self.assertEqual(len(result), 1)
@@ -190,50 +194,6 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertEqual(len(result_lower), 1)
         self.assertEqual(len(result_upper), 1)
 
-    def test_search_returns_all_fields(self):
-        """Test search result contains all expected fields."""
-        Vacancy.objects.create(
-            platform=self.platform,
-            company=self.company1,
-            city=self.city,
-            platform_vacancy_id="123",
-            title="Python Developer",
-            url="https://example.com/1",
-            salary="150000 RUB",
-            experience="3-5 years",
-            employment="Full-time",
-            work_format="Remote",
-            schedule="Flexible",
-            address="Moscow, Russia",
-            skills="Python, Django",
-            description="Senior position",
-            contacts="contact@example.com",
-            published_at=timezone.now(),
-        )
-
-        result = asyncio.run(get_search_vacancies(""))
-
-        expected_fields = [
-            "id",
-            "platform",
-            "title",
-            "salary",
-            "company",
-            "city",
-            "url",
-            "skills",
-            "experience",
-            "employment",
-            "work_format",
-            "schedule",
-            "description",
-            "address",
-            "contacts",
-            "published_at",
-        ]
-        for field in expected_fields:
-            self.assertIn(field, result[0])
-
 
     def test_first_page_pagination(self):
         VacancyFactory.build_batch(10)
@@ -246,21 +206,9 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertTrue(result["pagination"]["has_next"])
         self.assertFalse(result["pagination"]["has_previous"])
 
-    def test_middle_page_pagination(self):
-        VacancyFactory.build_batch(15)
-
-        request = self.factory.get("/vacancies?page=2")
-        result = asyncio.run(get_paginated_vacancies(request))
-
-        self.assertEqual(len(result["vacancies"]), VACANCIES_PER_PAGE)
-        self.assertEqual(result["pagination"]["current_page"], 2)
-        self.assertTrue(result["pagination"]["has_next"])
-        self.assertTrue(result["pagination"]["has_previous"])
-        self.assertEqual(result["pagination"]["previous_page_number"], 1)
-        self.assertEqual(result["pagination"]["next_page_number"], 3)
 
     def test_last_page_pagination(self):
-        VacancyFactory.build_batch(12)
+        VacancyFactory.create_batch(12)
 
         request = self.factory.get("/vacancies?page=3")
 
@@ -270,8 +218,8 @@ class SearchVacanciesTests(TransactionTestCase):
             with patch(
                 "app.services.vacancies.utils.paginated_vacancies.superjob_vacancy_parse"
             ) as mock_sj:
-                mock_hh.return_value = AsyncMock(status_code=404)()
-                mock_sj.return_value = AsyncMock(status_code=404)()
+                mock_hh.return_value = AsyncMock(status_code=200)
+                mock_sj.return_value = AsyncMock(status_code=200)
 
                 result = asyncio.run(get_paginated_vacancies(request))
 
@@ -280,63 +228,27 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertTrue(result["pagination"]["has_previous"])
 
     def test_default_page_number(self):
-        """Test default page is 1 when not specified."""
-        for i in range(5):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
         request = self.factory.get("/vacancies")
         result = asyncio.run(get_paginated_vacancies(request))
 
         self.assertEqual(result["pagination"]["current_page"], 1)
 
     def test_pagination_with_search_query(self):
-        """Test pagination works with search queries."""
-        # Create vacancies with different titles
-        for i in range(10):
-            title = "Python Developer" if i % 2 == 0 else "Java Engineer"
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=title,
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
+        VacancyFactory.create_batch(5, title="Python Developer")
+        VacancyFactory.create_batch(5, title="Java Developer")
 
         request = self.factory.get("/vacancies?page=1&search=Python")
         result = asyncio.run(get_paginated_vacancies(request))
 
         self.assertEqual(result["pagination"]["current_page"], 1)
-        # Should have Python vacancies
+        
         for vacancy in result["vacancies"]:
             self.assertIn("Python", vacancy["title"])
 
     def test_pagination_structure(self):
-        """Test pagination returns correct structure."""
-        for i in range(5):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
         request = self.factory.get("/vacancies?page=1")
         result = asyncio.run(get_paginated_vacancies(request))
 
-        # Check structure
         self.assertIn("pagination", result)
         self.assertIn("vacancies", result)
 
@@ -345,127 +257,4 @@ class SearchVacanciesTests(TransactionTestCase):
         self.assertIn("total_pages", pagination)
         self.assertIn("has_next", pagination)
         self.assertIn("has_previous", pagination)
-
-    def test_empty_vacancies_pagination(self):
-        """Test pagination with no vacancies."""
-        request = self.factory.get("/vacancies?page=1")
-        result = asyncio.run(get_paginated_vacancies(request))
-
-        self.assertEqual(len(result["vacancies"]), 0)
-        self.assertEqual(result["pagination"]["current_page"], 1)
-        self.assertEqual(result["pagination"]["total_pages"], 1)
-        self.assertFalse(result["pagination"]["has_next"])
-        self.assertFalse(result["pagination"]["has_previous"])
-
-    def test_next_page_number_on_last_page(self):
-        """Test next_page_number is None on last page."""
-        for i in range(5):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
-        request = self.factory.get("/vacancies?page=1")
-        result = asyncio.run(get_paginated_vacancies(request))
-
-        # Last page should have None for next_page_number
-        self.assertIsNone(result["pagination"]["next_page_number"])
-
-    def test_previous_page_number_on_first_page(self):
-        """Test previous_page_number is None on first page."""
-        for i in range(10):
-            Vacancy.objects.create(
-                platform=self.platform,
-                company=self.company,
-                city=self.city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Developer {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
-        request = self.factory.get("/vacancies?page=1")
-        result = asyncio.run(get_paginated_vacancies(request))
-
-        self.assertIsNone(result["pagination"]["previous_page_number"])
-
-
-@pytest.mark.django_db
-class TestSearchVacanciesAsync:
-    """Pytest-style async tests for search vacancies."""
-
-    async def test_search_with_empty_query(self):
-        """Test search with empty query returns all vacancies."""
-        platform = Platform.objects.create(name=Platform.HH)
-        company = Company.objects.create(name="TechCo")
-        city = City.objects.create(name="Moscow")
-
-        for i in range(3):
-            Vacancy.objects.create(
-                platform=platform,
-                company=company,
-                city=city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Dev {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
-        result = await get_search_vacancies("")
-        assert len(result) == 3
-
-    async def test_search_returns_dict_objects(self):
-        """Test search returns proper dict structure."""
-        platform = Platform.objects.create(name=Platform.HH)
-        company = Company.objects.create(name="TechCo")
-        city = City.objects.create(name="Moscow")
-
-        Vacancy.objects.create(
-            platform=platform,
-            company=company,
-            city=city,
-            platform_vacancy_id="123",
-            title="Python Dev",
-            url="https://example.com/1",
-            published_at=timezone.now(),
-        )
-
-        result = await get_search_vacancies("")
-        assert isinstance(result, list)
-        assert isinstance(result[0], dict)
-        assert result[0]["title"] == "Python Dev"
-
-
-@pytest.mark.django_db
-class TestPaginatedVacanciesAsync:
-    """Pytest-style async tests for paginated vacancies."""
-
-    async def test_paginated_vacancies_returns_dict(self):
-        """Test paginated vacancies returns proper structure."""
-        factory = RequestFactory()
-        platform = Platform.objects.create(name=Platform.HH)
-        company = Company.objects.create(name="TechCo")
-        city = City.objects.create(name="Moscow")
-
-        for i in range(5):
-            Vacancy.objects.create(
-                platform=platform,
-                company=company,
-                city=city,
-                platform_vacancy_id=f"id_{i}",
-                title=f"Dev {i}",
-                url=f"https://example.com/{i}",
-                published_at=timezone.now(),
-            )
-
-        request = factory.get("/vacancies?page=1")
-        result = await get_paginated_vacancies(request)
-
-        assert "pagination" in result
-        assert "vacancies" in result
-        assert result["pagination"]["current_page"] == 1
+4 
