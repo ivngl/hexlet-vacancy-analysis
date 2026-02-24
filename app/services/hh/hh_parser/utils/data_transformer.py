@@ -16,7 +16,12 @@ def format_salary(salary_data: Optional[dict[str, any]]) -> str:
     salary_from = salary_data.get("from")
     salary_to = salary_data.get("to")
 
-    if not salary_from and not salary_to or not isinstance(salary_from, int) and not isinstance(salary_to, int):
+    if (
+        not salary_from
+        and not salary_to
+        or not isinstance(salary_from, int)
+        and not isinstance(salary_to, int)
+    ):
         return "По договоренности"
 
     if salary_from:
