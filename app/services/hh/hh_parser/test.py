@@ -29,7 +29,7 @@ class HhParserTests(TransactionTestCase):
         self.sample_item = {
             "id": "123",
             "name": "Test Vacancy",
-            "salary": {"from": 100000, "to": 200000, "currency": "RUR"},
+            "salary": {"from": 100000, "to": 200000, "currency": "RUB"},
             "alternate_url": "https://hh.ru/vacancy/123",
             "experience": {"name": "3-5 years"},
             "schedule": {"name": "full day"},
@@ -46,8 +46,8 @@ class HhParserTests(TransactionTestCase):
 
     def test_format_salary_variants(self):
         self.assertEqual(
-            format_salary({"from": 1, "to": 2, "currency": "RUR"}),
-            "от 1 до 2 RUR",
+            format_salary({"from": 1, "to": 2, "currency": "RUB"}),
+            "от 1 до 2 RUB",
         )
 
         self.assertEqual(format_salary({"from": 10}), "от 10")
@@ -93,7 +93,7 @@ class HhParserTests(TransactionTestCase):
         self.assertFalse(Platform.objects.filter(name=Platform.HH).exists())
         transformed = transform_hh_data(self.sample_item)
         self.assertEqual(transformed["title"], "Test Vacancy")
-        self.assertEqual(transformed["salary"], "от 100000 до 200000 RUR")
+        self.assertEqual(transformed["salary"], "от 100000 до 200000 RUB")
 
         self.assertIsInstance(transformed["platform"], Platform)
         self.assertIsInstance(transformed["company"], Company)

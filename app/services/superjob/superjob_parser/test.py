@@ -32,7 +32,7 @@ class SuperJobParserTests(TransactionTestCase):
             "profession": "Senior Python Developer",
             "payment_from": 150000,
             "payment_to": 250000,
-            "currency": "RUR",
+            "currency": "RUB",
             "link": "https://superjob.ru/vacancy/456",
             "experience": {"title": "3-5 years"},
             "type_of_work": {"title": "full-time"},
@@ -100,7 +100,7 @@ class SuperJobParserTests(TransactionTestCase):
         transformed = transform_superjob_data(self.sample_item)
 
         self.assertEqual(transformed["title"], "Senior Python Developer")
-        self.assertEqual(transformed["salary"], "от 150000 до 250000 RUR")
+        self.assertEqual(transformed["salary"], "от 150000 до 250000 RUB")
         self.assertEqual(transformed["platform_vacancy_id"], f"{Platform.SUPER_JOB}456")
 
         self.assertIsInstance(transformed["platform"], Platform)
