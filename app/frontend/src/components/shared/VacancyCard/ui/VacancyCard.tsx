@@ -9,7 +9,7 @@ interface VacancyCardPropsWrapper {
 
 export const VacancyCard: React.FC<VacancyCardPropsWrapper> = ({ props }) => {
 
-  const { id, title, url, salary, employment, company, city, skills } = props;
+  const { title, url, salary, employment, company, city, skills } = props;
 
   const [skillsExpanded, setSkillsExpanded] = useState(false);
 
