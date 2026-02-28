@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 async def fetch_superjob_vacancies(params: dict | None = None):
-    secret_key = os.getenv("SUPERJOB_KEY")
+    secret_key = os.getenv("SUPERJOB_API_KEY")
     if not secret_key:
-        raise ValueError("SUPERJOB_KEY environment variable is not set")
+        raise ValueError("SUPERJOB_API_KEY environment variable is not set")
     base_url = "https://api.superjob.ru/2.0/vacancies"
     headers = {"X-Api-App-Id": secret_key}
     api_client = HTTPClient(base_url, headers)
