@@ -19,7 +19,7 @@ class ChatMessageService:
         self.ai_service = ai_service
         self.max_history_length = max_history_length
 
-    def hadle_message(self, *, user: User, session_key: str, message: str) -> str:
+    def handle_message(self, *, user: User, session_key: str, message: str) -> str:
         history = self.get_history(user=user, session_key=session_key)
         response = self.ai_service.get_response(message, history)
         new_history = self._append_and_trim(history, message, response)

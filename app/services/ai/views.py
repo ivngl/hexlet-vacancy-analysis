@@ -79,7 +79,7 @@ class AIAssistantView(View):
         chat_service = self._build_chat_service()
 
         try:
-            response = chat_service.hadle_message(
+            response = chat_service.handle_message(
                 user=request.user if request.user.is_authenticated else None,
                 session_key=request.session.session_key,
                 message=message,
