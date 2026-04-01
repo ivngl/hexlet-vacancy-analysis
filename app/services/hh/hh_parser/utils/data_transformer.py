@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 
 from app.services.vacancies.models import City, Company, Platform
 
+from .regions_parser import get_hh_city_to_region_mapping
+
 logger = logging.getLogger(__name__)
 
 CURRENCY_PATTERN = re.compile(r"^(rub|rur)$", re.IGNORECASE)
@@ -82,11 +84,13 @@ def safe_nested_get(data: Optional[dict[str, Any]], *keys: str) -> Any:
 def transform_hh_data(item: dict[str, Any]) -> dict[str, Any]:
     platform, _ = Platform.objects.get_or_create(name=Platform.HH)
     company = extract_company(item)
-    city, full_address = extract_city_and_address(item.get("address"))
+    city, full_address = extract_city_and_address(item.get("address"), item.get("area"))
+    region = get_hh_city_to_region_mapping(source="hh")
 
     return {
         "platform": platform,
         "company": company,
+        "region": region.get(str(city), 'Регион не найден'),
         "city": city,
         "platform_vacancy_id": f"{Platform.HH}{item.get('id')}",
         "title": item.get("name"),
@@ -115,11 +119,12 @@ def extract_company(item: dict[str, Any]) -> Optional[Company]:
 
 def extract_city_and_address(
     address: Optional[dict[str, Any]],
+    area: Optional[dict[str, Any]],
 ) -> tuple[Optional[City], Optional[str]]:
     if not address:
         return None, None
 
-    city_name = address.get("city")
+    city_name = area.get("name")
     city = None
     if city_name:
         city, _ = City.objects.get_or_create(name=city_name)

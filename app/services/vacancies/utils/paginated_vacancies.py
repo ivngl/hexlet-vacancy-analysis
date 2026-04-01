@@ -41,6 +41,7 @@ def get_searched_vacancies(search_query: str = "") -> list[dict[str, str]]:
             "title": v.title,
             "salary": v.salary,
             "company": v.company.name if v.company else "",
+            # "region": str(v.region).strip() if v.region else "",
             "city": v.city.name if v.city else "",
             "url": v.url,
             "skills": v.skills,
