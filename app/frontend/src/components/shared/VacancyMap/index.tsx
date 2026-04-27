@@ -73,7 +73,7 @@ export default function VacancyMap() {
                 page: '1',
                 catalogues: SUPERJOB_VACANCY_CATEGORY,
               },
-              headers: { 'X-Api-App-Id': import.meta.env.VITE_SUPERJOB_API_KEY },
+              headers: { 'X-Api-App-Id': import.meta.env.SUPERJOB_API_KEY },
               parseResponse: (data: Record<string, number>) => data.total ?? 0,
             };
 
