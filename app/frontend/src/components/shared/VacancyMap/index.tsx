@@ -30,7 +30,48 @@ type VacancyMapProps = {
 }
 
 
+const isWordInSentence = (
+  sentence: string,
+  word: string,
+  caseSensitive: boolean = false
+): boolean => {
+  // Escape special characters in the word to prevent Regex errors
+  const escapedWord = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // \b ensures "boundary" matches (prevents matching "apple" inside "applesauce")
+  const flags = caseSensitive ? "g" : "gi";
+  const regex = new RegExp(`\\b${escapedWord}\\b`, flags);
+
+  return regex.test(sentence);
+};
+
+const hasValidMatch = (
+  sentence: string,
+  query: string,
+  exclude: string[] = [],
+  caseSensitive: boolean = false
+): boolean => {
+  const normalize = (text: string) => (caseSensitive ? text : text.toLowerCase());
+
+  const cleanSentence = normalize(sentence);
+  const cleanQuery = normalize(query);
+
+  // 1. Check if the query exists at all
+  if (!cleanQuery || !cleanSentence.includes(cleanQuery)) {
+    return false;
+  }
+
+  // 2. Check if any excluded words exist in the sentence
+  const hasExcludedWord = exclude.some((word) =>
+    cleanSentence.includes(normalize(word))
+  );
+
+  return !hasExcludedWord;
+};
+
 export default function VacancyMap({ mapData }: VacancyMapProps) {
+
+  console.log(mapData)
   const [regions, setRegions] = useState<RegionData[]>(() =>
     REGIONS_DATA.map((r) => ({ ...r, pointer: null })),
   );
@@ -53,15 +94,15 @@ export default function VacancyMap({ mapData }: VacancyMapProps) {
         setError('Нет вакансий для загрузки')
         return
       }
-      const regionsMap = new Map(mapData.map(region => [String(region.region_id), region]))
+      const regionsMap = new Map(mapData.map(item => [String(item.region), item.totalVacancies]))
 
       const updatedRegions = regions.map(item => {
-        const region = regionsMap.get(String(item.id))
-        if (!region) return item
-        const totalVacancies = region.totalVacancies
+        const totalVacancies = regionsMap.get(String(item.name))
+        if (!totalVacancies) return item
         const pointer = calculatePointerData({ ...item, totalVacancies })
         return { ...item, pointer, totalVacancies }
       })
+      console.log(updatedRegions)
       setRegions(updatedRegions);
       setIsLoading(false);
       setError(null)

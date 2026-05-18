@@ -34,6 +34,7 @@ class VacancyFactory(DjangoModelFactory):
 
     platform = factory.SubFactory(PlatformFactory, name="HH")
     company = factory.SubFactory(CompanyFactory, name="Hexlet")
+    region = "Moscow"
     city = factory.SubFactory(CityFactory, name="Moscow")
 
     platform_vacancy_id = Sequence(lambda n: n)

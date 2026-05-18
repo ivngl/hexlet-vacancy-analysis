@@ -1,5 +1,4 @@
 export type MapData = {
-  region_id: string;
-  name: string;
+  region: string;
   totalVacancies: number
 }
