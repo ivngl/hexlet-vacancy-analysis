@@ -44,6 +44,9 @@ migrate:
 	uv run python manage.py migrate
 
 # Development servers
+dev:
+	make start-backend && make start-frontend
+
 start-backend:
 	uv run python manage.py runserver
 
