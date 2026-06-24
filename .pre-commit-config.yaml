@@ -28,3 +28,14 @@ repos:
           - eslint@^9.0.0
           - eslint-config-standard@^17.0.0
           - eslint-plugin-react@^7.37.0
+
+  # Run Django tests before commit
+  - repo: local
+    hooks:
+      - id: django-tests
+        name: Django tests
+        entry: uv run python manage.py test --parallel
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
