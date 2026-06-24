@@ -53,7 +53,16 @@ export default function VacancyMap({ mapData }: VacancyMapProps) {
         setError('Нет вакансий для загрузки')
         return
       }
-      const regionsMap = new Map(mapData.map(region => [String(region.region_id), region]))
+
+      const nameToId = new Map(REGIONS_DATA.map(r => [r.name, r.id]))
+      const regionsMap = new Map<string, typeof mapData[number]>()
+
+      for (const item of mapData) {
+        const id = nameToId.get(item.region)
+        if (id) {
+          regionsMap.set(id, item)
+        }
+      }
 
       const updatedRegions = regions.map(item => {
         const region = regionsMap.get(String(item.id))
@@ -68,7 +77,8 @@ export default function VacancyMap({ mapData }: VacancyMapProps) {
     }
 
     loadVacancies()
-  }, []);
+
+  }, [mapData, regions]);
 
 
   // Обработчики мыши
